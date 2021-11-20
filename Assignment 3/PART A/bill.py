@@ -7,7 +7,7 @@ price_of_each_item = []
 
 
 def calculate_bill(menu_card, ordered_items):
-    
+
     """caluclating bill by using details
     from the menu_card .Also storing the price
     of each qnatity in price_of_each_item with
@@ -60,23 +60,34 @@ def game(total_bill):
 
 
 def print_pattern_happy():
-    print(" ****            ****")
-    print("|    |          |    |")
-    print("|    |          |    |")
-    print("|    |          |    |")
-    print(" ****            ****")
+    print(" "+"*"*4+" "*12+"*"*4)
+    for i in range(3):
+        print("|"+" "*4+"|"+" "*10+"|"+" "*4+"|")
+    print(" "+"*"*4+" "*12+"*"*4)
     print()
-    print("          {}")
-    print("    ______________")
+    print(" "*10+"{}")
+    print(" "*4+"_"*14)
+    # print(" ****            ****")
+    # print("|    |          |    |")
+    # print("|    |          |    |")
+    # print("|    |          |    |")
+    # print(" ****            ****")
+    # print()
+    # print("          {}")
+    # print("    ______________")
 
 
 def print_pattern_sad():
-    print(" ****")
-    print("*    *")
-    print("*    *")
-    print("*    *")
-    print("*    *")
-    print(" ****")
+    print(" "+"*"*4+" ")
+    for i in range(4):
+        print("*"+" "*4+"*")
+    print(" "+"*"*4+" ")
+    # print(" ****")
+    # print("*    *")
+    # print("*    *")
+    # print("*    *")
+    # print("*    *")
+    # print(" ****")
 
 
 menu_card = {}  # to store menu items
@@ -84,8 +95,8 @@ menu_card = {}  # to store menu items
 with open("Menu.csv", mode="r") as file:
     csvFile = csv.reader(file)
 
-    """coverting string to integer format and 
-    creating the dictionary with key as item_id 
+    """coverting string to integer format and
+    creating the dictionary with key as item_id
     and values as price of half and full items"""
 
     for lines in csvFile:
