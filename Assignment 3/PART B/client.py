@@ -1,8 +1,10 @@
-import csv
 from random import choices
 from flask.scaffold import F
 import requests
 from flask import jsonify
+import json
+
+from app import Transaction
 
 
 
@@ -26,9 +28,9 @@ def calculate_bill(menu_card, ordered_items):
         quantity = items[1]
 
         if amount == "half":
-            price = menu_card[item_id]['half_plate']
+            price = float(menu_card[item_id]['half_plate'])
         elif amount == "full":
-            price = menu_card[item_id]['full_plate']
+            price = float(menu_card[item_id]['full_plate'])
 
         amount = amount[0].upper() + amount[1:]
         price = price * quantity
@@ -102,8 +104,8 @@ def display_menu(menu_card):
     print("{0: <15}".format("Full Plate"))
     for item in menu_card.keys():
         print("{0: <15}".format(item), end="")
-        print("{0: <15.2f}".format(menu_card[item_id]['half_plate']), end="")
-        print("{0: <15.2f}".format(menu_card[item_id]['full_plate']), end="")
+        print("{0: <15}".format(menu_card[item]['half_plate']), end="")
+        print("{0: <15}".format(menu_card[item]['full_plate']), end="")
         print()
 
 
@@ -111,13 +113,15 @@ def display_menu(menu_card):
 
 def take_order(menu_card):
 
+    
+
     print("Enter number of items you want to order: ", end="")
     no_of_items = int(input())
     ordered_items = {}
     print("Please enter items you want to order in the below format")
     print("item_id    [half/full]   quantity")
 
-
+    
     # taking input from user
     for i in range(no_of_items):
 
@@ -181,18 +185,37 @@ def take_order(menu_card):
     share = final_bill / no_of_people
     print("Updated share of each person:", "{0:.2f}".format(share))
 
+    
+    price_of_each_item.clear()
+
+    transaction_details = {}
+    transaction_details["ordered_items"] = ordered_items
+    transaction_details["total"] = bill
+    transaction_details["tip"] = tip_percentage
+    transaction_details["discount"] = result
+    transaction_details["final_bill"] = final_bill
+    transaction_details["people"] = no_of_people
+
+    response = sess.put('http://localhost:8000/transacton', json=transaction_details).text
+    print()
+    print(response)
+
+
+    
+
 
 menu_card= {}
 flag = False
+sess = requests.Session()
 while(True):
     print()
-    inp = input("Choose an option:\n1:signup\n2:login\n3:logout\n4.Add item\n5:Display Menu\n6:Order Iems\n7.Show transactions\n8.Exit\n")
+    inp = input("Choose an option:\n1:signup\n2:login\n3:logout\n4.Add item\n5:Display Menu\n6:Order Items\n7.Show transactions\n8.Exit\n")
     if(inp == "1"):
         type = input("Enter type(user/chef): ")
         username = input("Enter username: ")
         password = input("Enter password: ")
         data = {"type":type,"username":username,"password":password}
-        response = requests.post('http://localhost:8000/signup', json=data).content
+        response = sess.post('http://localhost:8000/signup', json=data).content
         print()
         print(response.decode('utf-8'))
 
@@ -200,12 +223,12 @@ while(True):
         username = input("Enter username: ")
         password = input("Enter password: ")
         data = {"username":username,"password":password}
-        response = requests.post('http://localhost:8000/login', json=data).content
+        response = sess.post('http://localhost:8000/login', json=data).content
         print()
         print(response.decode('utf-8'))
         
     elif(inp == "3"):
-        response = requests.get('http://localhost:8000/logout').content
+        response = sess.get('http://localhost:8000/logout').content
         print()
         print(response.decode('utf-8'))
     
@@ -215,21 +238,22 @@ while(True):
         half_plate = input("Enter half_plate: ")
         full_plate = input("Enter full_plate: ")
         data = {"item_id":item_id,"half_plate":half_plate,"full_plate":full_plate}
-        response = requests.post('http://localhost:8000/additem', json=data).content
+        response = sess.post('http://localhost:8000/additem', json=data).content
         print()
         print(response.decode('utf-8'))
 
     elif(inp == "5"):
-        response = requests.get('http://localhost:8000/getMenu').content
+        response = sess.get('http://localhost:8000/getMenu').text
         print()
-        menu_card = response.decode('utf-8')
-        print(menu_card)
-        print(type(menu_card))
-        # display_menu(menu_card)
+        if(response == "you are not loggedin"):
+            print(response)
+        else:
+            menu_card = json.loads(response)
+            display_menu(menu_card)
 
     elif(inp == "6"):
-        response = requests.get('http://localhost:8000/getMenu').content
-        menu_card = response.decode('utf-8')
+        response = sess.get('http://localhost:8000/getMenu').text
+        menu_card = json.loads(response)
         take_order(menu_card)
 
     elif(inp == "7"):
