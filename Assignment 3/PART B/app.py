@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from sqlalchemy.orm import session
 from flask import session as sess
-# import bill
+from flask_login import LoginManager, login_manager, login_user, logout_user, login_required,current_user, UserMixin
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:1234@localhost/restaurant'
@@ -13,9 +13,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
 db = SQLAlchemy(app)
+# sess['loggedIn'] = None
+# sess['type'] = None
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_message = "you are not logged in"
 
 
-class User(db.Model):
+class User(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type = db.Column(db.String(120))
     username = db.Column(db.String(80))
@@ -25,13 +31,27 @@ class User(db.Model):
         self.type = type
         self.username = username
         self.password = password
+    
+    def is_authenticated(self):
+        return True
 
+    def is_active(self):   
+        return True           
+
+    def is_anonymous(self):
+        return False          
+
+    def get_id(self):         
+        return str(self.id)
     # def __repr__(self):
     #     return '<User %r>' % self.username
     
     def getType(self):
         return  self.type
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 class Menu(db.Model):
 
@@ -50,9 +70,18 @@ class Menu(db.Model):
     
     def getType(self):
         return  self.type
+    
+    def get_item(self):
+        item = []
+        item.append(self.item_id)
+        item.append(self.half_plate)
+        item.append(self.full_plate)
+        return item
+    
 
-db.drop_all()
-db.create_all()
+# db.drop_all()
+# db.create_all()
+# db.session.commit()
 
 @app.route('/')
 def root():
@@ -73,7 +102,7 @@ def signup():
         return "User created successfully"
 
 @app.route("/login", methods=['POST'])
-def update():
+def login():
      if(request.method == 'POST'):
 
         sess.pop('type',None) 
@@ -85,25 +114,30 @@ def update():
         if(check_user is None):
             return "id not found"
         else:
-            sess['loggedIn'] = True
-            sess['type'] = check_user.getType()
+            login_user(check_user)
+            # sess['loggedIn'] = True
+            # sess['type'] = check_user.getType()
+            # print(sess.get("loggedIn"))
             return "loggedin successfully"
 
 @app.route("/logout", methods=['GET'])
 def logout():
      if(request.method == 'GET'):
-        sess.pop('type',None) 
-        sess.pop('loggedIn',None) 
+        # sess.pop('type',None) 
+        # sess.pop('loggedIn',None) 
+        logout_user()
         return "logged out successfully"
 
 @app.route("/additem", methods=['POST'])
 def additem():
 
-    if not sess.get("loggedIn"):
-        return "you are not loggedin"
+    # if not current_user.is_authenticated:
+    #     return current_app.login_manager.unauthorized()
+    # if not sess.get("loggedIn"):
+    #     return "you are not loggedin"
     
-    if sess.get("type") != "chef":
-        return "you are allowed to perform this action"
+    # if sess.get("type") != "chef":
+    #     return "you are allowed to perform this action"
     
     if(request.method == 'POST'):
 
@@ -116,5 +150,26 @@ def additem():
         db.session.commit()
         return "added successfully"
 
+
+
+@app.route("/getMenu", methods=['GET'])
+def display_menu():
+
+    # if not current_user.is_authenticated:
+    #     return login_manager.unauthorized()
+    # print(sess.get("loggedIn"))
+    # if not sess.get("loggedIn"):
+    #     return "you are not loggedin"
+
+    menu_card = {}
+    menu_objects = Menu.query.all()
+    for menu_obj in menu_objects:
+        lines = menu_obj.get_item()
+        menu_card[lines[0]] = {'half_plate':lines[1], 'full_plate':lines[2]}
+    return jsonify(menu_card)
+
+
+
+
 if __name__ == '__main__':
-    app.run(port=9001,debug=True)
+    app.run(port=8000,debug=True)
