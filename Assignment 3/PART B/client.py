@@ -4,8 +4,6 @@ import requests
 from flask import jsonify
 import json
 
-from app import Transaction
-
 
 
 global price_of_each_item
