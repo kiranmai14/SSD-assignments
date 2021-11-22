@@ -16,6 +16,10 @@ db = SQLAlchemy(app)
 
 
 class User(db.Model):
+
+    """User table will store the type of the user, username
+    and password"""
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type = db.Column(db.String(120))
     username = db.Column(db.String(80), unique=True)
@@ -26,9 +30,6 @@ class User(db.Model):
         self.username = username
         self.password = password
 
-    # def __repr__(self):
-    #     return '<User %r>' % self.username
-
     def get_type(self):
         return self.type
 
@@ -38,6 +39,9 @@ class User(db.Model):
 
 class Menu(db.Model):
 
+    """Menu table will store the type of the itemid, halfplate
+    price and fullplate price"""
+
     item_id = db.Column(db.Integer, primary_key=True)
     half_plate = db.Column(db.Numeric(20, 2))
     full_plate = db.Column(db.Numeric(20, 2))
@@ -46,9 +50,6 @@ class Menu(db.Model):
         self.item_id = item_id
         self.half_plate = half_plate
         self.full_plate = full_plate
-
-    # def __repr__(self):
-    #     return '<User %r>' % self.username
 
     def getType(self):
         return self.type
@@ -62,6 +63,9 @@ class Menu(db.Model):
 
 
 class Transaction(db.Model):
+
+    """Transactions table will store the transaction details
+    done all the uses"""
 
     user_id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(
@@ -84,8 +88,6 @@ class Transaction(db.Model):
         return self.transaction_id
 
     def get_transaction_data(self):
-
-
         transaction_details = {}
         transaction_details["total"] = self.total
         transaction_details["tip"] = self.tip
@@ -97,14 +99,18 @@ class Transaction(db.Model):
 
 class Items(db.Model):
 
+    """Items table will store the details of the items
+    ordered by a particular user in a particular transaction"""
+
     user_id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, primary_key=True)
-    is_half_plate = db.Column(db.Boolean, unique=False, default=False)
-    is_full_plate = db.Column(db.Boolean, unique=False, default=False)
+    is_half_plate = db.Column(db.Boolean, unique=False, primary_key=True, default=False)
+    is_full_plate = db.Column(db.Boolean, unique=False, primary_key=True, default=False)
     quantity = db.Column(db.Integer)
 
-    def __init__(self, user_id, transaction_id, item_id, is_half_plate, is_full_plate, quantity):
+    def __init__(self, user_id, transaction_id, item_id, is_half_plate, \
+                 is_full_plate, quantity):
         self.user_id = user_id
         self.transaction_id = transaction_id
         self.item_id = item_id
@@ -126,16 +132,12 @@ class Items(db.Model):
         return price_of_each_item
 
 
-# db.drop_all()
-# db.create_all()
-# db.session.commit()
-
 @app.route('/')
 def root():
     sess.pop('type', None)
     sess.pop('id', None)
     sess.pop('loggedIn', None)
-    return "This is root"
+    return ""
 
 
 @app.route("/signup", methods=['POST'])
@@ -163,7 +165,7 @@ def login():
         check_user = User.query.filter_by(
             username=username, password=password).first()
         if(check_user is None):
-            return "id not found"
+            return "Userid not found"
         else:
             sess['loggedIn'] = True
             sess['type'] = check_user.get_type()
@@ -190,7 +192,6 @@ def additem():
         return "you are allowed to perform this action"
 
     if(request.method == 'POST'):
-
         data = request.get_json()
         item_id = data['item_id']
         half_plate = data['half_plate']
@@ -216,11 +217,12 @@ def display_menu():
     return jsonify(menu_card)
 
 
-@app.route("/transacton", methods=['PUT'])
+@app.route("/transaction", methods=['PUT'])
 def insert_transaction_data():
 
     if not sess.get("loggedIn"):
         return "you are not loggedin"
+    """storing transaction details in database"""
 
     transaction_details = request.get_json()
     ordered_items = transaction_details["ordered_items"]
@@ -236,8 +238,11 @@ def insert_transaction_data():
     db.session.commit()
 
     transaction_id = transaction_item.get_transaction_id()
+
+    """storing items ordered in a particular
+    transaction in a database"""
+
     for key, value in ordered_items.items():
-        print(key, value)
         id = int(key.split(" ")[0])
         type = key.split(" ")[1]
         is_half_plate = False
@@ -265,14 +270,11 @@ def show_transactions():
 
     for obj in transaction_objects:
         transaction_ids.append(obj.get_transaction_id())
-    
-    return jsonify({"ids" : transaction_ids})
-
+    return jsonify({"ids": transaction_ids})
 
 
 @app.route("/showbreakdown", methods=['POST'])
 def show_breakdown():
-
     if not sess.get("loggedIn"):
         return "you are not loggedin"
 
@@ -280,11 +282,16 @@ def show_breakdown():
     transaction_id = data["transaction_id"]
     user_id = sess["id"]
 
-    transaction_object = Transaction.query.filter_by(user_id=user_id,transaction_id = transaction_id).first()
+    """fetching details of a particular transaction
+    from the database"""
+
+    transaction_object = Transaction.query.filter_by(user_id=user_id,
+                                                     transaction_id=transaction_id).first()
+    if(transaction_object is None):
+            return "Transaction id is not found"
     transaction_details = transaction_object.get_transaction_data()
-
-
-    items_obj = Items.query.filter_by(user_id=user_id,transaction_id = transaction_id).all()
+    items_obj = Items.query.filter_by(user_id=user_id,
+                                      transaction_id=transaction_id).all()
 
     price_of_each_item = []
 
