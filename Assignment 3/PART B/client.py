@@ -221,9 +221,9 @@ flag = False
 sess = requests.Session()
 while(True):
     print()
-    print("1: signup\n2: login\n3: logout")
+    print("1: Signup\n2: Login\n3: Logout")
     print("4: Add item\n5: Display Menu\n6: Order Items")
-    print("7: Show Transactions\n8: Get Transaction\n9: Exit")
+    print("7: Show Transactions\n8: Get Transaction details\n9: Exit")
     inp = input("Choose an option: ")
 
     if(inp == "1"):
