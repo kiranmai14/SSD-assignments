@@ -1,7 +1,5 @@
 from random import choices
-from flask.scaffold import F
 import requests
-from flask import jsonify
 import json
 
 
@@ -199,6 +197,44 @@ def take_order(menu_card):
     print(response)
 
 
+def show_transaction_data(transaction_details,menu_card):
+
+    
+    ordered_items = transaction_details["ordered_items"]
+    price_of_each_item = []
+    for item in ordered_items:
+
+        item_id = str(item[0])
+        amount = item[1]
+        quantity = item[2]
+        price = 0.0
+        if amount == "Half":
+            price = float(menu_card[item_id]['half_plate'])
+        elif amount == "Full":
+            price = float(menu_card[item_id]['full_plate'])
+        price = price * int(quantity)
+
+        price_of_each_item.append([item_id,amount,quantity,price])
+
+    
+    for item in price_of_each_item:
+        print("Item ", item[0], end=" ")
+        print("[" + item[1] + "]", end=" ")
+        print("[" + str(item[2]) + "]:", end=" ")
+        print(item[3])
+    
+    print("Total:", transaction_details["total"])
+    print("Tip percentage:", str(transaction_details["tip"])+"%")
+
+    if float(transaction_details["discount"]) < 0.00:
+        print("Discount:","{0:.2f}".format(abs(float(transaction_details["discount"]))))
+    else:
+        print("Increase:",transaction_details["discount"])
+
+    print("Final Bill:", transaction_details["final_bill"])
+    share = float(transaction_details["final_bill"]) / float(transaction_details["people"])
+    print("share of each person:", "{0:.2f}".format(share))
+
     
 
 
@@ -207,7 +243,7 @@ flag = False
 sess = requests.Session()
 while(True):
     print()
-    inp = input("Choose an option:\n1:signup\n2:login\n3:logout\n4.Add item\n5:Display Menu\n6:Order Items\n7.Show transactions\n8.Exit\n")
+    inp = input("Choose an option:\n1:signup\n2:login\n3:logout\n4.Add item\n5:Display Menu\n6:Order Items\n7.Show Transactions\n8:Get Transaction\n9.Exit\n")
     if(inp == "1"):
         type = input("Enter type(user/chef): ")
         username = input("Enter username: ")
@@ -255,8 +291,28 @@ while(True):
         take_order(menu_card)
 
     elif(inp == "7"):
-        exit(1)
+
+        response = sess.get('http://localhost:8000/showtransactionslist').text
+        transactions = json.loads(response)
+        transaction_ids = transactions["ids"]
+        for id in transaction_ids:
+            print(id,end=" ")
+    
     elif(inp == "8"):
+
+        id = input("Enter Transaction id:")
+
+        data = {"transaction_id":id}
+        response = sess.post('http://localhost:8000/showbreakdown', json=data).text
+        transaction_details = json.loads(response)
+
+        response = sess.get('http://localhost:8000/getMenu').text
+        menu_card = json.loads(response)
+        print()
+        print("BREAKDOWN OF TRANSACTION NO",id)
+        show_transaction_data(transaction_details,menu_card)
+        
+    elif(inp == "9"):
         exit(1)
 
 
